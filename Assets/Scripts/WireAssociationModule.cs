@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using KModkit;
 using UnityEngine;
 using WireAssociation;
 using Rnd = UnityEngine.Random;
@@ -28,6 +26,9 @@ public class WireAssociationModule : MonoBehaviour
     public Material UnlitLedMaterial;
     public Transform Shelf;
     public TextMesh DisplayText;
+    public MeshRenderer LidTop;
+    public MeshRenderer LidBottom;
+    public Mesh Quad;
 
     public Transform WireParent;
     public GameObject Dummy;
@@ -42,7 +43,9 @@ public class WireAssociationModule : MonoBehaviour
     private int _stage;
     private int _numWires;
     private bool _isSolved;
-    private int _expect;
+    private int _expect = 0;
+    private int _animating = 0;
+    private int _baseSeed = 0;
 
     private MeshFilter[] _wires;
     private MeshFilter[] _wireHighlights;
@@ -52,13 +55,21 @@ public class WireAssociationModule : MonoBehaviour
     private MeshRenderer[] _leds;
     private KMSelectable[] _buttons;
     private TextMesh[] _texts;
+    private Mesh _quadTop;
+    private Mesh _quadBottom;
 
     void Start()
     {
         _moduleId = _moduleIdCounter++;
+        _baseSeed = Rnd.Range(0, int.MaxValue);
 
         _numWires = Rnd.Range(11, 17);
         Debug.LogFormat("[Wire Association #{0}] Number of wires: {1}", _moduleId, _numWires);
+
+        _quadTop = Instantiate(Quad);
+        _quadBottom = Instantiate(Quad);
+        LidTop.GetComponent<MeshFilter>().sharedMesh = _quadTop;
+        LidBottom.GetComponent<MeshFilter>().sharedMesh = _quadBottom;
 
         _wires = new MeshFilter[_numWires];
         _wireSels = new KMSelectable[_numWires];
@@ -92,12 +103,8 @@ public class WireAssociationModule : MonoBehaviour
         }
 
         SubmitButton.OnInteract = Submit;
-
-        _assoc = Enumerable.Range(0, _numWires).ToArray().Shuffle();
-        Debug.LogFormat("[Wire Association #{0}] Wires are: {1}", _moduleId, _assoc.Select((ltr, ix) => string.Format("{0}={1}", ix + 1, (char) ('A' + ltr))).Join(", "));
-
         Destroy(Dummy);
-        StartCoroutine(Setup());
+        StartCoroutine(Setup(0));
     }
 
     private KMSelectable.OnInteractHandler ButtonPressed(int btn)
@@ -106,7 +113,7 @@ public class WireAssociationModule : MonoBehaviour
         {
             _buttons[btn].AddInteractionPunch(.2f);
             Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, _buttons[btn].transform);
-            if (_isSolved)
+            if (_isSolved || _animating > 0)
                 return false;
 
             var grs = _stage == 1
@@ -124,16 +131,32 @@ public class WireAssociationModule : MonoBehaviour
         SubmitButton.AddInteractionPunch(.2f);
         Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.BigButtonPress, SubmitButton.transform);
         if (!_isSolved && _stage < 2)
-        {
-            _stage++;
-            StartCoroutine(Setup());
-        }
+            StartCoroutine(Setup(_stage + 1));
         return false;
     }
 
-    private IEnumerator Setup()
+    private IEnumerator Setup(int newStage)
     {
-        yield return null;
+        if (newStage == 0)
+        {
+            _topGroups.Clear();
+            _bottomGroups.Clear();
+            for (var i = 0; i < _numWires; i++)
+            {
+                _topGroups.Add(new List<int> { i });
+                _bottomGroups.Add(new List<int> { i });
+            }
+
+            _expect = 0;
+            _assoc = Enumerable.Range(0, _numWires).ToArray().Shuffle();
+            Debug.LogFormat("[Wire Association #{0}] Wires are: {1}", _moduleId, _assoc.Select((ltr, ix) => string.Format("{0}={1}", ix + 1, (char) ('A' + ltr))).Join(", "));
+        }
+
+        foreach (var obj in openCloseAnimation(true))
+            yield return obj;
+
+        _stage = newStage;
+        GenerateWires(0);
 
         var mainSelectable = Module.GetComponent<KMSelectable>();
         var children = new KMSelectable[3 * _numWires];
@@ -147,11 +170,11 @@ public class WireAssociationModule : MonoBehaviour
             children[i + (_stage == 1 ? 1 : 2) * _numWires] = _wireSels[i];
             children[i + (_stage == 1 ? 2 : 1) * _numWires] = _stage > 0 ? _buttons[i] : null;
 
-            _texts[i].transform.localPosition = new Vector3(x, .0101f, _stage == 1 ? (i % 2 == 0 ? .001f : -.014f) : (i % 2 == 0 ? .002f : .017f));
+            _texts[i].transform.localPosition = new Vector3(x, .0101f, _stage == 1 ? (i % 2 == 0 ? .0015f : -.0135f) : (i % 2 == 0 ? 0 : .014f));
             _texts[i].text = _stage == 1 ? ((char) ('A' + i)).ToString() : (i + 1).ToString();
             _texts[i].anchor = _stage == 1 ? TextAnchor.UpperCenter : TextAnchor.LowerCenter;
 
-            _buttons[i].transform.localPosition = new Vector3(x, .0141f, (i % 2 == 0 ? .039f : .05f) * (_stage == 1 ? -1 : 1));
+            _buttons[i].transform.localPosition = new Vector3(x, .0141f, (i % 2 == 0 ? .036f : .047f) * (_stage == 1 ? -1 : 1));
             _buttons[i].gameObject.SetActive(_stage > 0);
         }
 
@@ -163,20 +186,70 @@ public class WireAssociationModule : MonoBehaviour
             _leds[i].sharedMaterial = UnlitLedMaterial;
         DisplayText.text = _stage == 2 ? "A" : "—";
 
-        if (_stage == 0)
-        {
-            _topGroups.Clear();
-            _bottomGroups.Clear();
-            for (var i = 0; i < _numWires; i++)
-            {
-                _topGroups.Add(new List<int> { i });
-                _bottomGroups.Add(new List<int> { i });
-            }
-        }
-        else if (_stage == 2)
-            _expect = 0;
+        foreach (var obj in openCloseAnimation(false))
+            yield return obj;
+    }
 
-        GenerateWires();
+    private IEnumerator shelfAnimation(bool close)
+    {
+        _animating++;
+        var elapsed = 0f;
+        var duration = .9f;
+
+        while (elapsed < duration)
+        {
+            Inside.localPosition = new Vector3(0, Easing.InOutQuad(elapsed, close ? 0 : -.0059f, close ? -.0059f : 0, duration), -.02f);
+            GenerateWires(Easing.InOutQuad(elapsed, 20, 0, duration));
+            yield return null;
+            elapsed += Time.deltaTime;
+        }
+
+        Inside.localPosition = new Vector3(0, close ? -.0059f : 0, -.02f);
+        _animating--;
+    }
+    private IEnumerator lidAnimation(bool close)
+    {
+        _animating++;
+        var elapsed = 0f;
+        var duration = .9f;
+
+        var topPosOpen = new Vector3(0, .011f, .0375f);
+        var topPosClose = new Vector3(0, .011f, .01f);
+        var bottomPosOpen = new Vector3(0, .011f, -.0775f);
+        var bottomPosClose = new Vector3(0, .011f, -.05f);
+
+        var scaleOpen = new Vector3(.16f, .005f, .1f);
+        var scaleClose = new Vector3(.16f, .06f, .1f);
+
+        while (elapsed < duration)
+        {
+            var t = Easing.InOutQuad(elapsed, 0, 1, duration);
+            LidTop.transform.localPosition = Vector3.Lerp(close ? topPosOpen : topPosClose, close ? topPosClose : topPosOpen, t);
+            LidBottom.transform.localPosition = Vector3.Lerp(close ? bottomPosOpen : bottomPosClose, close ? bottomPosClose : bottomPosOpen, t);
+            LidTop.transform.localScale = LidBottom.transform.localScale = Vector3.Lerp(close ? scaleOpen : scaleClose, close ? scaleClose : scaleOpen, t);
+
+            var y = LidTop.transform.localScale.y / .06f;
+            _quadTop.uv = new Vector2[] { new Vector2(0, 0), new Vector2(1, y), new Vector2(1, 0), new Vector2(0, y) };
+            _quadBottom.uv = new Vector2[] { new Vector2(0, 1 - y), new Vector2(1, 1), new Vector2(1, 1 - y), new Vector2(0, 1) };
+
+            yield return null;
+            elapsed += Time.deltaTime;
+        }
+        LidTop.transform.localPosition = close ? topPosClose : topPosOpen;
+        LidBottom.transform.localPosition = close ? bottomPosClose : bottomPosOpen;
+        LidTop.transform.localScale = LidBottom.transform.localScale = close ? scaleClose : scaleOpen;
+        if (close)
+            yield return new WaitForSeconds(.8f);
+        _animating--;
+    }
+
+    private IEnumerable<object> openCloseAnimation(bool close)
+    {
+        StartCoroutine(close ? shelfAnimation(close) : lidAnimation(close));
+        yield return new WaitForSeconds(.4f);
+        StartCoroutine(close ? lidAnimation(close) : shelfAnimation(close));
+        while (_animating > 0)
+            yield return null;
     }
 
     private double GetX(double wireIx)
@@ -190,7 +263,7 @@ public class WireAssociationModule : MonoBehaviour
         return delegate
         {
             _wireSels[wire].AddInteractionPunch(.2f);
-            if (_isSolved)
+            if (_isSolved || _animating > 0)
                 return false;
 
             if (_stage == 2)
@@ -205,14 +278,16 @@ public class WireAssociationModule : MonoBehaviour
                         Debug.LogFormat("[Wire Association #{0}] Module solved.", _moduleId);
                         Module.HandlePass();
                         DisplayText.text = "+";
+                        _isSolved = true;
+                        StartCoroutine(openCloseAnimation(true).GetEnumerator());
                     }
                 }
                 else
                 {
                     Debug.LogFormat("[Wire Association #{0}] You entered {1}={2}. Strike!", _moduleId, (char) ('A' + _expect), wire + 1);
                     Module.HandleStrike();
-                    _stage = 0;
-                    StartCoroutine(Setup());
+                    DisplayText.text = "×";
+                    StartCoroutine(Setup(0));
                 }
             }
             else if (_selected == null)
@@ -240,13 +315,13 @@ public class WireAssociationModule : MonoBehaviour
                 grs.Sort((a, b) => a[0].CompareTo(b[0]));
                 Debug.LogFormat("<Wire Association #{0}> Groups are: {1}", _moduleId, grs.Select(gr => string.Format("[{0}]", gr.Join(", "))).Join("; "));
                 _selected = null;
-                GenerateWires();
+                GenerateWires(20);
             }
             return false;
         };
     }
 
-    private void GenerateWires()
+    private void GenerateWires(double angleMultiplier)
     {
         var groupGroups = new List<List<List<int>>>();
 
@@ -273,17 +348,18 @@ public class WireAssociationModule : MonoBehaviour
         {
             var gr = _stage == 2 ? null : (_stage == 1 ? _topGroups : _bottomGroups).First(g => g.Contains(i));
             var midPoint = _stage == 2 ? 0 : (gr.Min() + gr.Max()) * .5;
-            var angle = _stage == 2 ? 0 : 20 * groupGroups.IndexOf(gg => gg.Any(g => g.Contains(i)));
-            var meshes = WireMeshGenerator.GenerateWire(GetX(i), GetX(_stage == 2 ? i : midPoint), angle, _stage == 1, false, i);
+            var angle = _stage == 2 ? 0 : angleMultiplier * groupGroups.IndexOf(gg => gg.Any(g => g.Contains(i)));
+            var meshes = WireMeshGenerator.GenerateWire(GetX(i), GetX(_stage == 2 ? i : midPoint), angle, _stage == 1, false, _baseSeed ^ i);
 
             _wires[i].sharedMesh = meshes.Wire;
             _wireCoppers[i].sharedMesh = meshes.Copper;
             _wireColliders[i].sharedMesh = meshes.Highlight;
             _wireHighlights[i].sharedMesh = meshes.Highlight;
 
-            var highlight2 = _wireHighlights[i].transform.Find("Highlight(Clone)").GetComponent<MeshFilter>();
-            if (highlight2 != null)
-                highlight2.sharedMesh = meshes.Highlight;
+            MeshFilter mf;
+            for (var j = 0; j < _wireHighlights[i].transform.childCount; j++)
+                if ((mf = _wireHighlights[i].transform.GetChild(j).GetComponent<MeshFilter>()) != null)
+                    mf.sharedMesh = meshes.Highlight;
         }
     }
 }

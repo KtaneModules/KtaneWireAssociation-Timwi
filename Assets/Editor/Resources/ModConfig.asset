@@ -17,11 +17,11 @@ MonoBehaviour:
   description: 'Which wire goes where?
 
 
-    Fair warning: This module poses a difficult puzzle, but one that can only be solved
-    once. The puzzle is to devise a strategy that always works. Once you know the
-    strategy, you can solve the module easily. If you enjoy puzzles, do yourself a
-    favor and try to solve it on your own before seeking spoilers from players who
-    already know how to do it!
+    Fair warning: This module poses a difficult puzzle that can only be solved once.
+    The puzzle is to devise a strategy that always works. Once you know a strategy,
+    the module becomes easy. If you enjoy puzzles, do yourself a favor and try to
+    solve it on your own before seeking spoilers from players who already know how
+    to do it!
 
 
     Module created by Timwi.

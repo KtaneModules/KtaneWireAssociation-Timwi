@@ -15,16 +15,16 @@ namespace WireAssociation
         const double _wireMinBézierDeviation = .0025;
         const double _wireMaxBézierDeviation = .005;
 
-        public static WireMeshes GenerateWire(double startX, double endX, double angle, bool top, bool highlight, int? seed = null)
+        public static WireMeshes GenerateWire(double startX, double endX, double angle, bool top, bool highlight, int seed)
         {
-            const int bézierSteps = 8;
-            const int tubeRevSteps = 16;
+            const int bézierSteps = 4;
+            const int tubeRevSteps = 12;
             const int subdivisions = 2;
-            const int reserveForCopper = 3;
+            const int reserveForCopper = 2;
 
             var bottom = top ? .05 : -.05;
 
-            var rnd = seed == null ? new Rnd() : new Rnd(seed.Value);
+            var rnd = new Rnd(seed);
 
             // Generate outer Bézier curve and subdivide it
             var start = pt(startX, 0, 0);
@@ -148,25 +148,10 @@ namespace WireAssociation
         {
             return Enumerable.Range(0, steps)
                 .Select(i => (double) i / (steps - 1))
-                .Select(t => pow(1 - t, 3) * start + 3 * pow(1 - t, 2) * t * control1 + 3 * (1 - t) * t * t * control2 + pow(t, 3) * end);
+                .Select(t => Math.Pow(1 - t, 3) * start + 3 * Math.Pow(1 - t, 2) * t * control1 + 3 * (1 - t) * t * t * control2 + Math.Pow(t, 3) * end);
         }
 
-        static double sin(double x)
-        {
-            return Math.Sin(x * Math.PI / 180);
-        }
-
-        static double cos(double x)
-        {
-            return Math.Cos(x * Math.PI / 180);
-        }
-
-        static double pow(double x, double y)
-        {
-            return Math.Pow(x, y);
-        }
-
-        static Pt pt(double x, double y, double z)
+        private static Pt pt(double x, double y, double z)
         {
             return new Pt(x, y, z);
         }
