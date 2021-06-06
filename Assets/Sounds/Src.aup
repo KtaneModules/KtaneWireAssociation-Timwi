@@ -1,0 +1,58 @@
+<?xml version="1.0" standalone="no" ?>
+<!DOCTYPE project PUBLIC "-//audacityproject-1.3.0//DTD//EN" "http://audacity.sourceforge.net/xml/audacityproject-1.3.0.dtd" >
+<project xmlns="http://audacity.sourceforge.net/xml/" projname="Src_data" version="1.3.0" audacityversion="2.4.2" sel0="0.4000000000" sel1="0.4000000000" vpos="0" h="0.0000000000" zoom="72.0300196839" rate="44100.0" snapto="off" selectionformat="hh:mm:ss + milliseconds" frequencyformat="Hz" bandwidthformat="octaves">
+	<tags/>
+	<wavetrack name="166227__demonicelectronic__1" isSelected="1" height="150" minimized="0" channel="2" linked="0" mute="0" solo="0" rate="44100" gain="1.0" pan="0.0" colorindex="0">
+		<waveclip offset="0.00000000" colorindex="0">
+			<sequence maxsamples="262144" sampleformat="262159" numsamples="57551">
+				<waveblock start="0">
+					<simpleblockfile filename="e08089e5.au" len="57551" min="-0.641937" max="0.549316" rms="0.042966"/>
+				</waveblock>
+			</sequence>
+			<envelope numpoints="0"/>
+		</waveclip>
+	</wavetrack>
+	<wavetrack name="366964__ryanlouis__mechanical-robotic-movement" isSelected="1" height="150" minimized="0" channel="0" linked="1" mute="0" solo="0" rate="48000" gain="1.0" pan="0.0" colorindex="0">
+		<waveclip offset="0.00000000" colorindex="0">
+			<sequence maxsamples="262144" sampleformat="262159" numsamples="62335">
+				<waveblock start="0">
+					<simpleblockfile filename="e08082a9.au" len="62335" min="-0.27685" max="0.226631" rms="0.045303"/>
+				</waveblock>
+			</sequence>
+			<envelope numpoints="0"/>
+		</waveclip>
+	</wavetrack>
+	<wavetrack name="366964__ryanlouis__mechanical-robotic-movement" isSelected="1" height="150" minimized="0" channel="1" linked="0" mute="0" solo="0" rate="48000" gain="1.0" pan="0.0" colorindex="0">
+		<waveclip offset="0.00000000" colorindex="0">
+			<sequence maxsamples="262144" sampleformat="262159" numsamples="62335">
+				<waveblock start="0">
+					<simpleblockfile filename="e08088b3.au" len="62335" min="-0.27685" max="0.226631" rms="0.045303"/>
+				</waveblock>
+			</sequence>
+			<envelope numpoints="0"/>
+		</waveclip>
+	</wavetrack>
+	<wavetrack name="475230__sheyvan__elevator-ride-3" isSelected="1" height="150" minimized="0" channel="2" linked="0" mute="1" solo="0" rate="48000" gain="1.0" pan="0.0" colorindex="0">
+		<waveclip offset="0.00000000" colorindex="0">
+			<sequence maxsamples="262144" sampleformat="262159" numsamples="97319">
+				<waveblock start="0">
+					<simpleblockfile filename="e0808217.au" len="97319" min="-0.291183" max="0.297303" rms="0.025991"/>
+				</waveblock>
+			</sequence>
+			<envelope numpoints="0"/>
+		</waveclip>
+	</wavetrack>
+	<wavetrack name="475230__sheyvan__elevator-ride-3" isSelected="1" height="150" minimized="0" channel="2" linked="0" mute="0" solo="0" rate="48000" gain="1.0" pan="0.0" colorindex="0">
+		<waveclip offset="0.00000000" colorindex="0">
+			<sequence maxsamples="262144" sampleformat="262159" numsamples="112075">
+				<waveblock start="0">
+					<simpleblockfile filename="e08081de.au" len="63973" min="-0.495318" max="0.45664" rms="0.027891"/>
+				</waveblock>
+				<waveblock start="63973">
+					<simpleblockfile filename="e08084b9.au" len="48102" min="-0.248926" max="0.214602" rms="0.02113"/>
+				</waveblock>
+			</sequence>
+			<envelope numpoints="0"/>
+		</waveclip>
+	</wavetrack>
+</project>
