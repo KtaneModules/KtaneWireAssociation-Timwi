@@ -384,4 +384,78 @@ public class WireAssociationModule : MonoBehaviour
                     mf.sharedMesh = meshes.Highlight;
         }
     }
+
+#pragma warning disable 414
+    private readonly string TwitchHelpMessage = @"!{0} press 1 3 3 4 / press C F F J [in stages 1 and 2, connects wires together; press same wires twice to disconnect; in stage 3, pulls the wires] | !{0} submit [red button; stages 1 and 2 only] | !{0} button 4 / button H [press the corresponding LED button; stages 2 and 3 only]";
+#pragma warning restore 414
+
+    public IEnumerator ProcessTwitchCommand(string command)
+    {
+        Match m;
+
+        if ((m = Regex.Match(command, @"^\s*(?:press|p)\s+([,;\sA-Z\d]+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).Success)
+        {
+            var wires = Regex.Split(m.Groups[1].Value, @"[,;\s]").Where(s => s.Length > 0)
+                .Select(str =>
+                {
+                    int v;
+                    return
+                        (_stage == 0 || _stage == 2) && int.TryParse(str, out v) && v >= 1 && v <= _numWires ? _wireSels[v - 1] :
+                        _stage == 1 && str.Length == 1 && str[0] >= 'a' && str[0] < (char) ('a' + _numWires) ? _wireSels[str[0] - 'a'] :
+                        _stage == 1 && str.Length == 1 && str[0] >= 'A' && str[0] < (char) ('A' + _numWires) ? _wireSels[str[0] - 'A'] : null;
+                })
+                .ToArray();
+            if (wires.Any(w => w == null))
+                yield break;
+            yield return null;
+            yield return wires;
+        }
+        else if ((m = Regex.Match(command, @"^\s*(?:button|btn|b)\s+([A-Z]|\d+)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).Success)
+        {
+            int v;
+            if ((_stage == 0 || _stage == 2) && int.TryParse(m.Groups[1].Value, out v) && v >= 1 && v <= _numWires)
+            {
+                yield return null;
+                yield return new[] { _buttons[v - 1] };
+            }
+            else if (_stage == 1 && m.Groups[1].Value.Length == 1 && m.Groups[1].Value[0] >= 'a' && m.Groups[1].Value[0] < (char) ('a' + _numWires))
+            {
+                yield return null;
+                yield return new[] { _buttons[m.Groups[1].Value[0] - 'a'] };
+            }
+            else if (_stage == 1 && m.Groups[1].Value.Length == 1 && m.Groups[1].Value[0] >= 'A' && m.Groups[1].Value[0] < (char) ('A' + _numWires))
+            {
+                yield return null;
+                yield return new[] { _buttons[m.Groups[1].Value[0] - 'A'] };
+            }
+            yield break;
+        }
+        else if (_stage < 2 && Regex.IsMatch(command, @"^\s*(?:submit|s)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            yield return null;
+            yield return new[] { SubmitButton };
+        }
+    }
+
+    public IEnumerator TwitchHandleForcedSolve()
+    {
+        while (_animating > 0)
+            yield return true;
+
+        while (_stage < 2)
+        {
+            SubmitButton.OnInteract();
+            while (_animating > 0)
+                yield return true;
+        }
+
+        while (!_isSolved)
+        {
+            _wireSels[Array.IndexOf(_assoc, _expect)].OnInteract();
+            yield return new WaitForSeconds(.1f);
+        }
+
+        while (_animating > 0)
+            yield return true;
+    }
 }
