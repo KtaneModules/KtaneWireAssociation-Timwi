@@ -15,23 +15,24 @@ namespace WireAssociation
         const double _wireMinBézierDeviation = .0025;
         const double _wireMaxBézierDeviation = .005;
 
-        public static WireMeshes GenerateWire(double startX, double endX, double angle, bool top, bool highlight, int seed)
+        public static WireMeshes GenerateWire(double startX, double endX, double angle, bool isAtTop, bool highlight, int seed)
         {
-            const int bézierSteps = 4;
-            const int tubeRevSteps = 12;
-            const int subdivisions = 2;
-            const int reserveForCopper = 2;
+            const int bézierSteps = 6;
+            const int tubeRevSteps = 7;
+            const int subdivisions = 1;
+            const int reserveForCopper = 1;
 
-            var bottom = top ? .05 : -.05;
+            var bottom = isAtTop ? .05 : -.05;
+            var top = isAtTop ? -.001f : .001f;
 
             var rnd = new Rnd(seed);
 
             // Generate outer Bézier curve and subdivide it
-            var start = pt(startX, 0, 0);
+            var start = pt(startX, 0, top);
             var end = pt(endX, 0, bottom);
             var startControl = pt(startX, 0, bottom / 2);
             var endControl = ((end + startControl) / 2);
-            var rAngle = top ? -angle : angle;
+            var rAngle = isAtTop ? -angle : angle;
             endControl = endControl.Rotate(pt(0, 0, 0), pt(1, 0, 0), rAngle);
             end = end.Rotate(pt(0, 0, 0), pt(1, 0, 0), rAngle);
             var curve = new[] { start, startControl, endControl, end };
@@ -40,27 +41,22 @@ namespace WireAssociation
                 curve = Enumerable.Range(0, (curve.Length - 1) / 3).SelectMany(sgm => subdivide(curve.Subarray(3 * sgm, 4))).Concat(new[] { end }).ToArray();
 
             // Apply deviations
-            for (var i = 3; i < curve.Length - 1; i += 3)
+            for (var i = 0; i < curve.Length; i += 3)
             {
-                var deviation = pt(rnd.NextDouble(), rnd.NextDouble(), rnd.NextDouble()).Normalize() * (rnd.NextDouble() * (_wireMaxBézierDeviation - _wireMinBézierDeviation) + _wireMinBézierDeviation);
-                curve[i - 1] += deviation;
-                curve[i + 1] -= deviation;
+                var deviation = pt(rnd.NextDouble() - .5, rnd.NextDouble() - .5, rnd.NextDouble() - .5).Normalize() * (rnd.NextDouble() * (_wireMaxBézierDeviation - _wireMinBézierDeviation) + _wireMinBézierDeviation);
+                if (i > 0)
+                    curve[i - 1] += deviation;
+                if (i < curve.Length - 1)
+                    curve[i + 1] -= deviation;
             }
 
             // Generate inner Bézier curves
             var points = Enumerable.Range(0, (curve.Length - 1) / 3).SelectMany(ix => bézier(curve[3 * ix], curve[3 * ix + 1], curve[3 * ix + 2], curve[3 * ix + 3], bézierSteps).SkipLast(1)).Concat(new[] { end }).ToArray();
 
-            var generateEndCap = new Func<Pt, Pt, VertexInfo[], VertexInfo[][]>((sndLast, last, lastCircle) =>
-            {
-                var capCenter = last;
-                var normal = capCenter - sndLast;
-                return lastCircle.SelectConsecutivePairs(true, (v1, v2) => new[] { capCenter, v2.Point, v1.Point }.Select(p => new VertexInfo { Point = p, Normal = normal }).ToArray()).ToArray();
-            });
-
             var generateMeshWithThickness = new Func<double, Pt[], Mesh>((thickness, pts) =>
             {
                 var mainWire = tubeFromCurve(pts, thickness, tubeRevSteps);
-                var endCap = generateEndCap(pts[pts.Length - 2], pts[pts.Length - 1], mainWire[mainWire.Length - 1]);
+                var endCap = mainWire[mainWire.Length - 1].SelectConsecutivePairs(true, (v1, v2) => (new[] { pts[pts.Length - 1], v2.Point, v1.Point }).Select(p => new VertexInfo { Point = p, Normal = pts[pts.Length - 1] - pts[pts.Length - 2] }).ToArray()).ToArray();
                 return toMesh(createFaces(false, true, mainWire).Concat(endCap).ToArray());
             });
 
@@ -68,7 +64,7 @@ namespace WireAssociation
             {
                 Wire = generateMeshWithThickness(_wireRadius, points.Subarray(0, points.Length - reserveForCopper)),
                 Highlight = generateMeshWithThickness(_wireRadiusHighlight, points.Subarray(0, points.Length - reserveForCopper)),
-                Copper = generateMeshWithThickness(_wireRadius / 2, points.Subarray(points.Length - reserveForCopper - 1, reserveForCopper + 1))
+                Copper = generateMeshWithThickness(_wireRadius / 2, points.Subarray(points.Length - reserveForCopper - 2, reserveForCopper + 2))
             };
         }
 

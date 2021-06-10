@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using WireAssociation;
 using Rnd = UnityEngine.Random;
@@ -104,6 +105,7 @@ public class WireAssociationModule : MonoBehaviour
 
         SubmitButton.OnInteract = Submit;
         Destroy(Dummy);
+        DisplayText.text = "";
         StartCoroutine(Setup(0, firstRun: true));
     }
 
@@ -132,13 +134,15 @@ public class WireAssociationModule : MonoBehaviour
         SubmitButton.AddInteractionPunch(.2f);
         Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.BigButtonPress, SubmitButton.transform);
         if (_animating == 0 && !_isSolved && _stage < 2)
+        {
+            DisplayText.text = "";
             StartCoroutine(Setup(_stage + 1));
+        }
         return false;
     }
 
     private IEnumerator Setup(int newStage, bool firstRun = false)
     {
-        DisplayText.text = "";
         _animating++;
         if (newStage == 0)
         {
