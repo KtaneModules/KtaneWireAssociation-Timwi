@@ -390,14 +390,14 @@ public class WireAssociationModule : MonoBehaviour
     }
 
 #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"!{0} press 1 3 3 4 / press C F F J [in stages 1 and 2, connects wires together; press same wires twice to disconnect; in stage 3, pulls the wires] | !{0} submit [red button; stages 1 and 2 only] | !{0} button 4 / button H [press the corresponding LED button; stages 2 and 3 only]";
+    private readonly string TwitchHelpMessage = @"!{0} press 1 3 3 4 / press C F F J [in stages 1 and 2, connects wires together; press same wire twice to disconnect; in stage 3, pulls the wires] | !{0} submit [red button; stages 1 and 2 only] | !{0} button 4 / button H [press the corresponding LED button; stages 2 and 3 only]";
 #pragma warning restore 414
 
     public IEnumerator ProcessTwitchCommand(string command)
     {
         Match m;
 
-        if ((m = Regex.Match(command, @"^\s*(?:press|p)\s+([,;\sA-Z\d]+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).Success)
+        if ((m = Regex.Match(command, @"^\s*(?:press|pull|p|connect|c)\s+([,;\sA-Z\d]+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).Success)
         {
             var wires = Regex.Split(m.Groups[1].Value, @"[,;\s]").Where(s => s.Length > 0)
                 .Select(str =>
@@ -414,7 +414,7 @@ public class WireAssociationModule : MonoBehaviour
             yield return null;
             yield return wires;
         }
-        else if ((m = Regex.Match(command, @"^\s*(?:button|btn|b)\s+([A-Z]|\d+)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).Success)
+        else if ((m = Regex.Match(command, @"^\s*(?:button|btn|b|led|l)\s+([A-Z]|\d+)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).Success)
         {
             int v;
             if ((_stage == 0 || _stage == 2) && int.TryParse(m.Groups[1].Value, out v) && v >= 1 && v <= _numWires)
