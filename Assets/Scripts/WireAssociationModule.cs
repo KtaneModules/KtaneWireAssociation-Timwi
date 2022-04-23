@@ -32,7 +32,6 @@ public class WireAssociationModule : MonoBehaviour
     public Mesh Quad;
 
     public Transform WireParent;
-    public GameObject Dummy;
 
     private static int _moduleIdCounter = 1;
     private int _moduleId;
@@ -104,7 +103,6 @@ public class WireAssociationModule : MonoBehaviour
         }
 
         SubmitButton.OnInteract = Submit;
-        Destroy(Dummy);
         DisplayText.text = "";
         StartCoroutine(Setup(0, firstRun: true));
     }
@@ -310,10 +308,7 @@ public class WireAssociationModule : MonoBehaviour
                 }
             }
             else if (_selected == null)
-            {
-                Debug.LogFormat("<Wire Association #{0}> Selected wire {1}", _moduleId, wire);
                 _selected = wire;
-            }
             else
             {
                 var grs = _stage == 0 ? _bottomGroups : _topGroups;
@@ -332,7 +327,6 @@ public class WireAssociationModule : MonoBehaviour
                     grs.RemoveAt(groupIx);
                 }
                 grs.Sort((a, b) => a[0].CompareTo(b[0]));
-                Debug.LogFormat("<Wire Association #{0}> Groups are: {1}", _moduleId, grs.Select(gr => string.Format("[{0}]", gr.Join(", "))).Join("; "));
                 _selected = null;
                 GenerateWires(20);
             }
