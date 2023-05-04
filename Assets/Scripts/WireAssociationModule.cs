@@ -141,6 +141,11 @@ public class WireAssociationModule : MonoBehaviour
 
     private IEnumerator Setup(int newStage, bool firstRun = false)
     {
+        if (newStage == 1)
+            Debug.LogFormat("[Wire Association #{0}] Bottom wire groups selected: {1}", _moduleId, _bottomGroups.Select(g => g.Select(i => i + 1).JoinString("-")).JoinString(", "));
+        else if (newStage == 2)
+            Debug.LogFormat("[Wire Association #{0}] Top wire groups selected: {1}", _moduleId, _topGroups.Select(g => g.Select(i => (char) ('A' + i)).JoinString("-")).JoinString(", "));
+
         _animating++;
         if (newStage == 0)
         {
@@ -301,7 +306,7 @@ public class WireAssociationModule : MonoBehaviour
                 }
                 else
                 {
-                    Debug.LogFormat("[Wire Association #{0}] You entered {1}={2}. Strike!", _moduleId, (char) ('A' + _expect), wire + 1);
+                    Debug.LogFormat("[Wire Association #{0}] You entered {1}={2}. Strike! Resetting module.", _moduleId, (char) ('A' + _expect), wire + 1);
                     Module.HandleStrike();
                     DisplayText.text = "×";
                     StartCoroutine(Setup(0));
